@@ -1,6 +1,8 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
 // Tipo para os dados de respostas
 interface DadosRespostas {
@@ -10,33 +12,33 @@ interface DadosRespostas {
   D: number;
 }
 
-/**
- * Server Action para buscar a contagem de respostas do Supabase
- * Agrupa e conta as respostas por alternativa (A, B, C, D)
- * 
- * @param {string} perguntaId - ID da pergunta no banco de dados
- * @returns {Promise<DadosRespostas>} Objeto com contagem de respostas por alternativa
- * 
- * @example
- * const dados = await obterRespostasAgrupadas('123');
- * // Retorna: { A: 150, B: 200, C: 120, D: 180 }
- */
+interface ContagemRespostas {
+  dados: number;
+  ux: number;
+  dev: number;
+  seguranca: number;
+}
+
+const CONTAS_PADRAO: ContagemRespostas = {
+  dados: 0,
+  ux: 0,
+  dev: 0,
+  seguranca: 0,
+};
+
+async function getSupabaseClient() {
+  const cookieStore = await cookies();
+  return createClient(cookieStore);
+}
+
 export async function obterRespostasAgrupadas(
   perguntaId: string
 ): Promise<DadosRespostas> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Variáveis de ambiente do Supabase não configuradas');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = await getSupabaseClient();
 
   try {
-    // Buscar todas as respostas para a pergunta especificada
     const { data, error } = await supabase
-      .from('respostas') // Ajuste o nome da tabela conforme seu schema
+      .from('respostas')
       .select('alternativa')
       .eq('pergunta_id', perguntaId);
 
@@ -44,7 +46,6 @@ export async function obterRespostasAgrupadas(
       throw new Error(`Erro ao buscar respostas: ${error.message}`);
     }
 
-    // Inicializar contadores
     const resultado: DadosRespostas = {
       A: 0,
       B: 0,
@@ -52,11 +53,15 @@ export async function obterRespostasAgrupadas(
       D: 0,
     };
 
-    // Contar respostas por alternativa
     if (data) {
-      data.forEach((row) => {
-        const alternativa = row.alternativa?.toUpperCase() as 'A' | 'B' | 'C' | 'D' | undefined;
-        if (alternativa && (alternativa === 'A' || alternativa === 'B' || alternativa === 'C' || alternativa === 'D')) {
+      data.forEach((row: any) => {
+        const alternativa = row.alternativa?.toUpperCase() as
+          | 'A'
+          | 'B'
+          | 'C'
+          | 'D'
+          | undefined;
+        if (alternativa && ['A', 'B', 'C', 'D'].includes(alternativa)) {
           resultado[alternativa]++;
         }
       });
@@ -65,18 +70,10 @@ export async function obterRespostasAgrupadas(
     return resultado;
   } catch (error) {
     console.error('Erro ao processar respostas:', error);
-    // Retornar dados vazios em caso de erro
     return { A: 0, B: 0, C: 0, D: 0 };
   }
 }
 
-/**
- * Server Action para obter respostas agrupadas de múltiplas perguntas
- * Útil para dashboards com vários gráficos
- * 
- * @param {string[]} perguntaIds - Array com IDs das perguntas
- * @returns {Promise<Record<string, DadosRespostas>>} Objeto com dados por pergunta
- */
 export async function obterRespostasMultiplas(
   perguntaIds: string[]
 ): Promise<Record<string, DadosRespostas>> {
@@ -89,131 +86,84 @@ export async function obterRespostasMultiplas(
   return resultado;
 }
 
-/**
- * Server Action para obter a contagem total de respostas por categoria
- * Conta quantas vezes cada categoria (dados, ux, dev, seguranca) foi selecionada
- * 
- * @returns {Promise<{dados: number, ux: number, dev: number, seguranca: number}>}
- */
-export async function obterContagemRespostas() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return { dados: 0, ux: 0, dev: 0, seguranca: 0 };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+export async function obterContagemRespostas(): Promise<ContagemRespostas> {
+  const supabase = await getSupabaseClient();
 
   try {
-    // Buscar todas as respostas da tabela
-    const { data, error } = await supabase.from('Respostas').select('*');
+    const { data: linhas, error } = await supabase
+      .from('Respostas')
+      .select(
+        'resposta-da-primeira-pergunta,resposta-da-segunda-pergunta,resposta-da-terceira-pergunta,resposta-da-quarta-pergunta,resposta-da-quinta-pergunta'
+      )
+      .setHeader('Cache-Control', 'no-store');
 
     if (error) {
       console.error('Erro ao buscar respostas:', error);
-      return { dados: 0, ux: 0, dev: 0, seguranca: 0 };
+      return { ...CONTAS_PADRAO };
     }
 
-    // Inicializar contadores
-    const contadores = {
-      dados: 0,
-      ux: 0,
-      dev: 0,
-      seguranca: 0,
-    };
+    if (!linhas || linhas.length === 0) {
+      return { ...CONTAS_PADRAO };
+    }
 
-    // Contar respostas por categoria
-    if (data && Array.isArray(data)) {
-      data.forEach((row: any) => {
-        // Colunas de respostas conforme o schema real
-        const respostas = [
-          row.resposta_da_primeira_pergunta,
-          row.resposta_da_segunda_pergunta,
-          row.resposta_da_terceira_pergunta,
-          row.resposta_da_quarta_pergunta,
-          row.resposta_da_quinta_pergunta,
-        ];
+    const contadores: ContagemRespostas = { ...CONTAS_PADRAO };
+    const colunas = [
+      'resposta-da-primeira-pergunta',
+      'resposta-da-segunda-pergunta',
+      'resposta-da-terceira-pergunta',
+      'resposta-da-quarta-pergunta',
+      'resposta-da-quinta-pergunta',
+    ];
 
-        // Contar cada resposta
-        respostas.forEach((valor) => {
-          if (valor && (valor === 'dados' || valor === 'ux' || valor === 'dev' || valor === 'seguranca')) {
-            contadores[valor as keyof typeof contadores]++;
-          }
-        });
+    linhas.forEach((linha: any) => {
+      colunas.forEach((coluna) => {
+        const valor = linha[coluna];
+        if (valor === 'dados') contadores.dados++;
+        if (valor === 'ux') contadores.ux++;
+        if (valor === 'dev') contadores.dev++;
+        if (valor === 'seguranca') contadores.seguranca++;
       });
-    }
+    });
 
     return contadores;
   } catch (error) {
     console.error('Erro ao contar respostas:', error);
-    return { dados: 0, ux: 0, dev: 0, seguranca: 0 };
+    return { ...CONTAS_PADRAO };
   }
 }
 
-/**
- * Server Action para enviar e salvar as respostas do formulário no Supabase
- * 
- * @param {FormData} formData - Dados do formulário com as respostas
- * @returns {Promise<{sucesso: boolean, mensagem: string}>} Resultado da operação
- */
-export async function enviarRespostasDoFormulario(formData: FormData) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return {
-      sucesso: false,
-      mensagem: 'Variáveis de ambiente do Supabase não configuradas',
-    };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
+export async function enviarRespostasDoFormulario(formData: FormData): Promise<void> {
+  const supabase = await getSupabaseClient();
 
   try {
-    // Extrair respostas do formulário
-    const pergunta1 = formData.get('pergunta1')?.toString() || '';
-    const pergunta2 = formData.get('pergunta2')?.toString() || '';
-    const pergunta3 = formData.get('pergunta3')?.toString() || '';
-    const pergunta4 = formData.get('pergunta4')?.toString() || '';
-    const pergunta5 = formData.get('pergunta5')?.toString() || '';
+    const resposta1 = formData.get('pergunta1')?.toString() || '';
+    const resposta2 = formData.get('pergunta2')?.toString() || '';
+    const resposta3 = formData.get('pergunta3')?.toString() || '';
+    const resposta4 = formData.get('pergunta4')?.toString() || '';
+    const resposta5 = formData.get('pergunta5')?.toString() || '';
 
-    // Validar que todas as perguntas foram respondidas
-    if (!pergunta1 || !pergunta2 || !pergunta3 || !pergunta4 || !pergunta5) {
-      return {
-        sucesso: false,
-        mensagem: 'Todas as perguntas devem ser respondidas',
-      };
+    if (!resposta1 || !resposta2 || !resposta3 || !resposta4 || !resposta5) {
+      console.error('Todas as perguntas devem ser respondidas');
+      return;
     }
 
-    // Preparar dados para inserção (uma única linha com todas as respostas)
     const dadosParaInserir = {
-      resposta_da_primeira_pergunta: pergunta1,
-      resposta_da_segunda_pergunta: pergunta2,
-      resposta_da_terceira_pergunta: pergunta3,
-      resposta_da_quarta_pergunta: pergunta4,
-      resposta_da_quinta_pergunta: pergunta5,
+      'resposta-da-primeira-pergunta': resposta1,
+      'resposta-da-segunda-pergunta': resposta2,
+      'resposta-da-terceira-pergunta': resposta3,
+      'resposta-da-quarta-pergunta': resposta4,
+      'resposta-da-quinta-pergunta': resposta5,
     };
 
-    // Inserir respostas no Supabase
     const { error } = await supabase.from('Respostas').insert([dadosParaInserir]);
 
     if (error) {
-      console.error('Erro ao salvar respostas:', error);
-      return {
-        sucesso: false,
-        mensagem: `Erro ao salvar respostas: ${error.message}`,
-      };
+      console.error('Erro ao inserir respostas:', error);
+      return;
     }
 
-    return {
-      sucesso: true,
-      mensagem: 'Respostas enviadas com sucesso!',
-    };
+    revalidatePath('/');
   } catch (error) {
     console.error('Erro ao processar formulário:', error);
-    return {
-      sucesso: false,
-      mensagem: 'Erro ao processar o formulário',
-    };
   }
 }

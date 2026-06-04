@@ -3,6 +3,7 @@
 
 import FormularioComponent from "./components/FormularioComponent"
 import HeaderComponent from "./components/HeaderComponent"
+import GraficosComponent from "./components/GraficosComponent"
 
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
         </div>
     </main>
     <FormularioComponent />
+    <GraficosComponent />
     </>
   ) 
 }

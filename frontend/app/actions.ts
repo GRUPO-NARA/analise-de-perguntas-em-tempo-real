@@ -4,7 +4,6 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-// Tipo para os dados de respostas
 interface DadosRespostas {
   A: number;
   B: number;
@@ -86,6 +85,7 @@ export async function obterRespostasMultiplas(
   return resultado;
 }
 
+// FUNÇÃO CORRIGIDA: Agora conta apenas 1 Perfil Predominante por aluno (linha)
 export async function obterContagemRespostas(): Promise<ContagemRespostas> {
   const supabase = await getSupabaseClient();
 
@@ -115,14 +115,33 @@ export async function obterContagemRespostas(): Promise<ContagemRespostas> {
       'resposta-da-quinta-pergunta',
     ];
 
+    // Mapeamento dinâmico para evitar o uso de any e garantir segurança de tipos
     linhas.forEach((linha: any) => {
+      // Contador local para armazenar as intenções desta pessoa específica
+      const contagemLocal: Record<string, number> = { dados: 0, ux: 0, dev: 0, seguranca: 0 };
+
       colunas.forEach((coluna) => {
-        const valor = linha[coluna];
-        if (valor === 'dados') contadores.dados++;
-        if (valor === 'ux') contadores.ux++;
-        if (valor === 'dev') contadores.dev++;
-        if (valor === 'seguranca') contadores.seguranca++;
+        const valor = (linha[coluna] || '').toLowerCase().trim();
+        if (contagemLocal[valor] !== undefined) {
+          contagemLocal[valor]++;
+        }
       });
+
+      // Determina qual perfil teve a maior recorrência nas 5 respostas deste aluno
+      let perfilVencedor = '';
+      let maiorVoto = -1;
+
+      for (const perfil in contagemLocal) {
+        if (contagemLocal[perfil] > maiorVoto) {
+          maiorVoto = contagemLocal[perfil];
+          perfilVencedor = perfil;
+        }
+      }
+
+      // Incrementa apenas 1 ponto para o perfil ganhador deste aluno no resultado final
+      if (perfilVencedor && contadores[perfilVencedor as keyof ContagemRespostas] !== undefined) {
+        contadores[perfilVencedor as keyof ContagemRespostas]++;
+      }
     });
 
     return contadores;

@@ -4,18 +4,19 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-interface DadosRespostas {
-  A: number;
-  B: number;
-  C: number;
-  D: number;
-}
+type RespostaArea = 'dados' | 'ux' | 'dev' | 'seguranca';
 
 interface ContagemRespostas {
   dados: number;
   ux: number;
   dev: number;
   seguranca: number;
+}
+
+interface PontoBubble {
+  x: number;
+  y: number;
+  r: number;
 }
 
 const CONTAS_PADRAO: ContagemRespostas = {
@@ -30,62 +31,64 @@ async function getSupabaseClient() {
   return createClient(cookieStore);
 }
 
-export async function obterRespostasAgrupadas(
-  perguntaId: string
-): Promise<DadosRespostas> {
+function normalizeArea(value: unknown): RespostaArea | undefined {
+  const resposta = String(value || '').trim().toLowerCase();
+  if (resposta === 'dados' || resposta === 'ux' || resposta === 'dev' || resposta === 'seguranca') {
+    return resposta;
+  }
+  return undefined;
+}
+
+export async function enviarRespostasDoFormulario(formData: FormData) {
   const supabase = await getSupabaseClient();
 
-  try {
-    const { data, error } = await supabase
-      .from('respostas')
-      .select('alternativa')
-      .eq('pergunta_id', perguntaId);
+  const resposta1 = formData.get('pergunta1')?.toString().trim() || '';
+  const resposta2 = formData.get('pergunta2')?.toString().trim() || '';
+  const resposta3 = formData.get('pergunta3')?.toString().trim() || '';
+  const resposta4 = formData.get('pergunta4')?.toString().trim() || '';
+  const resposta5 = formData.get('pergunta5')?.toString().trim() || '';
+  
+  const resposta6 = parseInt(formData.get('pergunta6')?.toString() || '', 10);
+  const resposta7 = parseInt(formData.get('pergunta7')?.toString() || '', 10);
+  const resposta8 = parseInt(formData.get('pergunta8')?.toString() || '', 10);
+  const resposta9 = parseInt(formData.get('pergunta9')?.toString() || '', 10);
+  const resposta10 = parseInt(formData.get('pergunta10')?.toString() || '', 10);
 
-    if (error) {
-      throw new Error(`Erro ao buscar respostas: ${error.message}`);
-    }
-
-    const resultado: DadosRespostas = {
-      A: 0,
-      B: 0,
-      C: 0,
-      D: 0,
-    };
-
-    if (data) {
-      data.forEach((row: any) => {
-        const alternativa = row.alternativa?.toUpperCase() as
-          | 'A'
-          | 'B'
-          | 'C'
-          | 'D'
-          | undefined;
-        if (alternativa && ['A', 'B', 'C', 'D'].includes(alternativa)) {
-          resultado[alternativa]++;
-        }
-      });
-    }
-
-    return resultado;
-  } catch (error) {
-    console.error('Erro ao processar respostas:', error);
-    return { A: 0, B: 0, C: 0, D: 0 };
-  }
-}
-
-export async function obterRespostasMultiplas(
-  perguntaIds: string[]
-): Promise<Record<string, DadosRespostas>> {
-  const resultado: Record<string, DadosRespostas> = {};
-
-  for (const id of perguntaIds) {
-    resultado[id] = await obterRespostasAgrupadas(id);
+  if (
+    !resposta1 || !resposta2 || !resposta3 || !resposta4 || !resposta5 ||
+    Number.isNaN(resposta6) || Number.isNaN(resposta7) || 
+    Number.isNaN(resposta8) || Number.isNaN(resposta9) || Number.isNaN(resposta10)
+  ) {
+    console.error('Erro: Todas as 10 perguntas devem ser respondidas de forma válida!');
+    return;
   }
 
-  return resultado;
+  const payload = {
+    'resposta-da-primeira-pergunta': resposta1,
+    'resposta-da-segunda-pergunta': resposta2,
+    'resposta-da-terceira-pergunta': resposta3,
+    'resposta-da-quarta-pergunta': resposta4,
+    'resposta-da-quinta-pergunta': resposta5,
+    'resposta-da-sexta-pergunta': resposta6,
+    'resposta-da-setima-pergunta': resposta7,
+    'resposta-da-oitava-pergunta': resposta8,
+    'resposta-da-nona-pergunta': resposta9,
+    'resposta-da-decima-pergunta': resposta10,
+  };
+
+  const { error } = await supabase
+    .from('Respostas')
+    .insert(payload)
+    .setHeader('Cache-Control', 'no-store');
+
+  if (error) {
+    console.error('Erro ao inserir respostas:', error.message);
+    return;
+  }
+
+  revalidatePath('/');
 }
 
-// FUNÇÃO CORRIGIDA: Agora conta apenas 1 Perfil Predominante por aluno (linha)
 export async function obterContagemRespostas(): Promise<ContagemRespostas> {
   const supabase = await getSupabaseClient();
 
@@ -98,15 +101,15 @@ export async function obterContagemRespostas(): Promise<ContagemRespostas> {
       .setHeader('Cache-Control', 'no-store');
 
     if (error) {
-      console.error('Erro ao buscar respostas:', error);
-      return { ...CONTAS_PADRAO };
+      throw error;
     }
+
+    const contagem: ContagemRespostas = { ...CONTAS_PADRAO };
 
     if (!linhas || linhas.length === 0) {
-      return { ...CONTAS_PADRAO };
+      return contagem;
     }
 
-    const contadores: ContagemRespostas = { ...CONTAS_PADRAO };
     const colunas = [
       'resposta-da-primeira-pergunta',
       'resposta-da-segunda-pergunta',
@@ -115,74 +118,90 @@ export async function obterContagemRespostas(): Promise<ContagemRespostas> {
       'resposta-da-quinta-pergunta',
     ];
 
-    // Mapeamento dinâmico para evitar o uso de any e garantir segurança de tipos
     linhas.forEach((linha: any) => {
-      // Contador local para armazenar as intenções desta pessoa específica
+      // Cria um contador de intenções local para o aluno da vez
       const contagemLocal: Record<string, number> = { dados: 0, ux: 0, dev: 0, seguranca: 0 };
 
       colunas.forEach((coluna) => {
-        const valor = (linha[coluna] || '').toLowerCase().trim();
-        if (contagemLocal[valor] !== undefined) {
-          contagemLocal[valor]++;
+        const area = normalizeArea(linha[coluna]);
+        if (area) {
+          contagemLocal[area]++;
         }
       });
 
-      // Determina qual perfil teve a maior recorrência nas 5 respostas deste aluno
-      let perfilVencedor = '';
+      // Avalia qual das categorias teve a maior recorrência nas 5 respostas deste aluno
+      let perfilVencedor: RespostaArea | null = null;
       let maiorVoto = -1;
 
       for (const perfil in contagemLocal) {
         if (contagemLocal[perfil] > maiorVoto) {
           maiorVoto = contagemLocal[perfil];
-          perfilVencedor = perfil;
+          perfilVencedor = perfil as RespostaArea;
         }
       }
 
-      // Incrementa apenas 1 ponto para o perfil ganhador deste aluno no resultado final
-      if (perfilVencedor && contadores[perfilVencedor as keyof ContagemRespostas] !== undefined) {
-        contadores[perfilVencedor as keyof ContagemRespostas]++;
+      // Soma única e exclusivamente 1 ponto ao perfil que ganhou a preferência deste aluno
+      if (perfilVencedor) {
+        contagem[perfilVencedor]++;
       }
     });
 
-    return contadores;
+    return contagem;
   } catch (error) {
-    console.error('Erro ao contar respostas:', error);
+    console.error('Erro ao processar contagem de respostas:', error);
     return { ...CONTAS_PADRAO };
   }
 }
 
-export async function enviarRespostasDoFormulario(formData: FormData): Promise<void> {
+export async function obterDadosCruzadosBubble(): Promise<PontoBubble[]> {
   const supabase = await getSupabaseClient();
 
   try {
-    const resposta1 = formData.get('pergunta1')?.toString() || '';
-    const resposta2 = formData.get('pergunta2')?.toString() || '';
-    const resposta3 = formData.get('pergunta3')?.toString() || '';
-    const resposta4 = formData.get('pergunta4')?.toString() || '';
-    const resposta5 = formData.get('pergunta5')?.toString() || '';
-
-    if (!resposta1 || !resposta2 || !resposta3 || !resposta4 || !resposta5) {
-      console.error('Todas as perguntas devem ser respondidas');
-      return;
-    }
-
-    const dadosParaInserir = {
-      'resposta-da-primeira-pergunta': resposta1,
-      'resposta-da-segunda-pergunta': resposta2,
-      'resposta-da-terceira-pergunta': resposta3,
-      'resposta-da-quarta-pergunta': resposta4,
-      'resposta-da-quinta-pergunta': resposta5,
-    };
-
-    const { error } = await supabase.from('Respostas').insert([dadosParaInserir]);
+    const { data: linhas, error } = await supabase
+      .from('Respostas')
+      .select('resposta-da-sexta-pergunta,resposta-da-setima-pergunta,resposta-da-nona-pergunta,resposta-da-decima-pergunta')
+      .setHeader('Cache-Control', 'no-store');
 
     if (error) {
-      console.error('Erro ao inserir respostas:', error);
-      return;
+      throw error;
     }
 
-    revalidatePath('/');
+    if (!linhas || linhas.length === 0) {
+      return [];
+    }
+
+    const frequenciaPontos: Record<string, number> = {};
+
+    linhas.forEach((linha: any) => {
+      const q6 = Number(linha['resposta-da-sexta-pergunta']);
+      const q7 = Number(linha['resposta-da-setima-pergunta']);
+      const q9 = Number(linha['resposta-da-nona-pergunta']);
+      const q10 = Number(linha['resposta-da-decima-pergunta']);
+
+      if (!Number.isFinite(q6) || !Number.isFinite(q7) || !Number.isFinite(q9) || !Number.isFinite(q10)) {
+        return;
+      }
+
+      const eixoX = Math.round((q6 + q9 + q10) / 3);
+      const eixoY = q7;
+
+      const chaveCoordenada = `${eixoX}_${eixoY}`;
+      frequenciaPontos[chaveCoordenada] = (frequenciaPontos[chaveCoordenada] || 0) + 1;
+    });
+
+    return Object.keys(frequenciaPontos).map((chave) => {
+      const [x, y] = chave.split('_').map(Number);
+      const quantidade = frequenciaPontos[chave];
+
+      return {
+        x,
+        y,
+        r: quantidade * 2, // Ajustado de 5 para 2: crescimento visual mais contido e realista
+      };
+    });
+
   } catch (error) {
-    console.error('Erro ao processar formulário:', error);
+    console.error('Erro ao buscar dados para o gráfico bubble:', error);
+    return [];
   }
 }

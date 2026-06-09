@@ -14,27 +14,33 @@ export default function Home() {
   const [abaAtiva, setAbaAtiva] = useState<AbaTipo>('formulario');
 
   return (
-    <>
-      {/* Passando o estado e a função de mudança para o Header se atualizar visualmente */}
+    <div className="min-h-screen">
       <HeaderComponent abaAtiva={abaAtiva} setAbaAtiva={setAbaAtiva} />
       
-      <main className="flex flex-col items-center justify-center p-4 md:p-12 bg-[#e6e6e6] w-full min-h-[20vh]">
-        <div className="flex flex-col items-center gap-2 p-5 border border-gray-400 rounded-2xl bg-white max-w-xl w-full text-center shadow-sm">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+      <main className="mx-auto w-full max-w-7xl px-4 pb-5 pt-8 sm:px-6 sm:pt-12">
+        <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-blue-100/70 px-6 py-10 text-center shadow-[0_24px_70px_-40px_rgba(30,64,175,0.65)] sm:px-10 sm:py-14">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-300/20 blur-3xl" />
+          <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl" />
+          <span className="relative inline-flex rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600">
+            Pesquisa interativa
+          </span>
+          <h1 className="relative mx-auto mt-4 max-w-3xl text-3xl font-black tracking-tight text-blue-950 sm:text-4xl md:text-5xl">
             Análise de Perguntas em Tempo Real
           </h1>
-          <p className="text-xs sm:text-sm md:text-base font-semibold text-gray-500 uppercase tracking-wider">
+          <p className="relative mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+            Responda ao questionário e acompanhe os resultados coletivos ganhando forma ao vivo.
+          </p>
+          <p className="relative mt-5 text-xs font-bold uppercase tracking-[0.16em] text-blue-500">
             NARA • Núcleo de Análises e Recursos Analíticos
           </p>
         </div>
       </main>
 
-      {/* RENDERIZAÇÃO CONDICIONAL: Só mostra na tela o componente da aba selecionada */}
-      <div className="w-full bg-[#e6e6e6] pb-12">
+      <div className="w-full pb-12">
         {abaAtiva === 'formulario' && <FormularioComponent />}
         {abaAtiva === 'graficos' && <GraficosComponent />}
         {abaAtiva === 'informacoes' && <InformacoesComponent />}
       </div>
-    </>
+    </div>
   ) 
 }

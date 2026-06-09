@@ -1,2 +1,62 @@
 @import "tailwindcss";
 
+:root {
+  --background: #f4f8ff;
+  --foreground: #183153;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(191, 219, 254, 0.48), transparent 34rem),
+    linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+  color: var(--foreground);
+}
+
+button,
+select,
+a {
+  outline-color: #60a5fa;
+}
+
+.questionnaire > div {
+  border: 1px solid #dbeafe;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
+  padding: 1rem;
+  box-shadow: 0 10px 30px -24px rgba(30, 64, 175, 0.55);
+}
+
+.questionnaire label {
+  color: #1e3a5f;
+  line-height: 1.55;
+}
+
+.questionnaire select {
+  width: 100%;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #1e3a5f;
+  padding: 0.75rem 0.9rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.questionnaire select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16);
+}
+
+@media (min-width: 640px) {
+  .questionnaire > div {
+    padding: 1.25rem;
+  }
+}
+

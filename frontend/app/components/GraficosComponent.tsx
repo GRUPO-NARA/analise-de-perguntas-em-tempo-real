@@ -225,22 +225,27 @@ export default function GraficosComponent() {
 
   if (carregando) {
     return (
-      <div className="w-full h-[280px] sm:h-[350px] flex flex-col items-center justify-center bg-white rounded-2xl border border-gray-200 shadow-sm mx-auto my-4 max-w-7xl">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-        <p className="mt-3 text-sm text-gray-500">Buscando métricas ao vivo...</p>
+      <div className="mx-auto my-4 flex h-[280px] w-[calc(100%-2rem)] max-w-7xl flex-col items-center justify-center rounded-[2rem] border border-blue-100 bg-white/90 shadow-[0_24px_70px_-45px_rgba(30,64,175,0.7)] sm:h-[350px]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"></div>
+        <p className="mt-3 text-sm font-medium text-blue-700">Buscando métricas ao vivo...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 my-4">
+    <div className="mx-auto my-4 w-full max-w-7xl px-4 sm:px-6">
+      <div className="mb-6 text-center">
+        <span className="text-xs font-bold uppercase tracking-[0.18em] text-blue-500">Painel ao vivo</span>
+        <h2 className="mt-1 text-2xl font-black text-blue-950 sm:text-3xl">Resultados da pesquisa</h2>
+        <p className="mt-2 text-sm text-slate-500">Os dados são atualizados automaticamente a cada poucos segundos.</p>
+      </div>
       {/* GRID RESPONSIVO: 1 coluna no mobile, 3 colunas em telas grandes (lg) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* CARD 1: Pizza */}
         <div 
           onClick={() => setGraficoExpandido('pizza')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm h-[320px] sm:h-[350px] flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group"
+          className="group flex h-[320px] cursor-pointer flex-col justify-between rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-[0_18px_50px_-38px_rgba(30,64,175,0.8)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100 sm:h-[350px] sm:p-5"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -267,7 +272,7 @@ export default function GraficosComponent() {
         {/* CARD 2: Barras */}
         <div 
           onClick={() => setGraficoExpandido('barras')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm h-[320px] sm:h-[350px] flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group"
+          className="group flex h-[320px] cursor-pointer flex-col justify-between rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-[0_18px_50px_-38px_rgba(30,64,175,0.8)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100 sm:h-[350px] sm:p-5"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -288,7 +293,7 @@ export default function GraficosComponent() {
         {/* CARD 3: Bubble */}
         <div 
           onClick={() => setGraficoExpandido('bubble')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm h-[320px] sm:h-[350px] flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group"
+          className="group flex h-[320px] cursor-pointer flex-col justify-between rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-[0_18px_50px_-38px_rgba(30,64,175,0.8)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100 sm:h-[350px] sm:p-5"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -315,8 +320,8 @@ export default function GraficosComponent() {
 
       {/* MODAL DE AMPLIAÇÃO DINÂMICO - Fica em tela cheia no Mobile e Desktop */}
       {graficoExpandido !== null && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-3 sm:p-6 md:p-10" style={{ zIndex: 9999 }}>
-          <div className="bg-white w-full max-w-5xl h-[85vh] sm:h-[80vh] rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 flex flex-col justify-between">
+        <div className="fixed inset-0 flex items-center justify-center bg-blue-950/60 p-3 backdrop-blur-sm sm:p-6 md:p-10" style={{ zIndex: 9999 }}>
+          <div className="flex h-[85vh] w-full max-w-5xl flex-col justify-between rounded-2xl border border-blue-100 bg-white p-4 shadow-2xl sm:h-[80vh] sm:rounded-3xl sm:p-6 md:p-8">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>
@@ -332,7 +337,7 @@ export default function GraficosComponent() {
                   e.stopPropagation();
                   setGraficoExpandido(null);
                 }}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-colors"
+                className="rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Fechar ✕
               </button>

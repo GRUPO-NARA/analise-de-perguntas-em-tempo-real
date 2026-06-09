@@ -19,6 +19,14 @@ interface PontoBubble {
   r: number;
 }
 
+export interface EstadoEnvioFormulario {
+  status: 'idle' | 'sucesso' | 'erro' | 'ja-enviado';
+  mensagem: string;
+}
+
+const COOKIE_RESPOSTA_ENVIADA = 'nara_resposta_enviada';
+const UM_ANO_EM_SEGUNDOS = 60 * 60 * 24 * 365;
+
 const CONTAS_PADRAO: ContagemRespostas = {
   dados: 0,
   ux: 0,
@@ -39,8 +47,23 @@ function normalizeArea(value: unknown): RespostaArea | undefined {
   return undefined;
 }
 
-export async function enviarRespostasDoFormulario(formData: FormData) {
-  const supabase = await getSupabaseClient();
+export async function verificarSeJaRespondeu(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return cookieStore.get(COOKIE_RESPOSTA_ENVIADA)?.value === 'true';
+}
+
+export async function enviarRespostasDoFormulario(
+  _estadoAnterior: EstadoEnvioFormulario,
+  formData: FormData
+): Promise<EstadoEnvioFormulario> {
+  const cookieStore = await cookies();
+
+  if (cookieStore.get(COOKIE_RESPOSTA_ENVIADA)?.value === 'true') {
+    return {
+      status: 'ja-enviado',
+      mensagem: 'Este dispositivo já enviou uma resposta.',
+    };
+  }
 
   const resposta1 = formData.get('pergunta1')?.toString().trim() || '';
   const resposta2 = formData.get('pergunta2')?.toString().trim() || '';
@@ -54,15 +77,20 @@ export async function enviarRespostasDoFormulario(formData: FormData) {
   const resposta9 = parseInt(formData.get('pergunta9')?.toString() || '', 10);
   const resposta10 = parseInt(formData.get('pergunta10')?.toString() || '', 10);
 
+  const respostasDeArea = [resposta1, resposta2, resposta3, resposta4, resposta5];
+  const respostasNumericas = [resposta6, resposta7, resposta8, resposta9, resposta10];
+
   if (
-    !resposta1 || !resposta2 || !resposta3 || !resposta4 || !resposta5 ||
-    Number.isNaN(resposta6) || Number.isNaN(resposta7) || 
-    Number.isNaN(resposta8) || Number.isNaN(resposta9) || Number.isNaN(resposta10)
+    respostasDeArea.some((resposta) => !normalizeArea(resposta)) ||
+    respostasNumericas.some((resposta) => !Number.isInteger(resposta) || resposta < 1 || resposta > 5)
   ) {
-    console.error('Erro: Todas as 10 perguntas devem ser respondidas de forma válida!');
-    return;
+    return {
+      status: 'erro',
+      mensagem: 'Responda as 10 perguntas antes de enviar.',
+    };
   }
 
+  const supabase = createClient(cookieStore);
   const payload = {
     'resposta-da-primeira-pergunta': resposta1,
     'resposta-da-segunda-pergunta': resposta2,
@@ -83,10 +111,26 @@ export async function enviarRespostasDoFormulario(formData: FormData) {
 
   if (error) {
     console.error('Erro ao inserir respostas:', error.message);
-    return;
+    return {
+      status: 'erro',
+      mensagem: 'Não foi possível enviar agora. Tente novamente.',
+    };
   }
 
+  cookieStore.set(COOKIE_RESPOSTA_ENVIADA, 'true', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: UM_ANO_EM_SEGUNDOS,
+    path: '/',
+  });
+
   revalidatePath('/');
+
+  return {
+    status: 'sucesso',
+    mensagem: 'Respostas enviadas com sucesso. Obrigado por participar!',
+  };
 }
 
 export async function obterContagemRespostas(): Promise<ContagemRespostas> {

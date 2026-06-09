@@ -82,12 +82,12 @@ export default function InformacoesComponent() {
               </a>
 
               <a 
-                href="https://github.com/GRUPO-NARA/mapa-social-do-maranhao" // Adicione aqui o link para o portfólio Streamlit se necessário
+                href="https://www.instagram.com/lab.synapse/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="group flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/60 p-3 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50"
               >
-                <span className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">Repositório Mapa Social no GitHub</span>
+                <span className="text-sm font-semibold text-gray-700 group-hover:text-blue-600">Nos acompanhe no Instagram</span>
                 <span className="text-xs bg-white text-gray-500 px-2.5 py-1 rounded-md border group-hover:text-blue-600">Visualizar ↗</span>
               </a>
 

@@ -1,5 +1,7 @@
 "use client"
 
+import Image from 'next/image';
+
 // Definindo a interface para receber o estado compartilhado da Home
 interface HeaderProps {
   abaAtiva: 'formulario' | 'graficos' | 'informacoes';
@@ -15,16 +17,18 @@ export default function HeaderComponent({ abaAtiva, setAbaAtiva }: HeaderProps) 
 
   return (
     <header className="sticky top-0 z-50 border-b border-blue-100/80 bg-white/90 shadow-[0_8px_30px_-22px_rgba(30,64,175,0.6)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-black tracking-tight text-white shadow-lg shadow-blue-200">
-            N
-          </div>
-          <div>
-            <p className="text-base font-extrabold tracking-[0.18em] text-blue-950">NARA</p>
-            <p className="hidden text-[10px] font-medium uppercase tracking-wider text-blue-500 sm:block">
-              Análises em tempo real
-            </p>
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        
+        {/* Container da Logo Minimalista */}
+        <div className="flex items-center justify-center sm:justify-start">
+          <div className="relative h-14 w-28 select-none transition-transform hover:scale-105 active:scale-95">
+            <Image 
+              src="/logo-NARA.png" 
+              alt="Logo Oficial NARA"
+              fill
+              className="object-contain object-left" 
+              priority 
+            />
           </div>
         </div>
 

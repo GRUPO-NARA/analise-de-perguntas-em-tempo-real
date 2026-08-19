@@ -24,9 +24,6 @@ export interface EstadoEnvioFormulario {
   mensagem: string;
 }
 
-const COOKIE_RESPOSTA_ENVIADA = 'nara_resposta_enviada';
-const UM_ANO_EM_SEGUNDOS = 60 * 60 * 24 * 365;
-
 const CONTAS_PADRAO: ContagemRespostas = {
   dados: 0,
   ux: 0,
@@ -47,23 +44,10 @@ function normalizeArea(value: unknown): RespostaArea | undefined {
   return undefined;
 }
 
-export async function verificarSeJaRespondeu(): Promise<boolean> {
-  const cookieStore = await cookies();
-  return cookieStore.get(COOKIE_RESPOSTA_ENVIADA)?.value === 'true';
-}
-
 export async function enviarRespostasDoFormulario(
   _estadoAnterior: EstadoEnvioFormulario,
   formData: FormData
 ): Promise<EstadoEnvioFormulario> {
-  const cookieStore = await cookies();
-
-  if (cookieStore.get(COOKIE_RESPOSTA_ENVIADA)?.value === 'true') {
-    return {
-      status: 'ja-enviado',
-      mensagem: 'Este dispositivo já enviou uma resposta.',
-    };
-  }
 
   const resposta1 = formData.get('pergunta1')?.toString().trim() || '';
   const resposta2 = formData.get('pergunta2')?.toString().trim() || '';
@@ -90,7 +74,7 @@ export async function enviarRespostasDoFormulario(
     };
   }
 
-  const supabase = createClient(cookieStore);
+  const supabase = createClient(await cookies());
   const payload = {
     'resposta-da-primeira-pergunta': resposta1,
     'resposta-da-segunda-pergunta': resposta2,
@@ -117,14 +101,6 @@ export async function enviarRespostasDoFormulario(
     };
   }
 
-  cookieStore.set(COOKIE_RESPOSTA_ENVIADA, 'true', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: UM_ANO_EM_SEGUNDOS,
-    path: '/',
-  });
-
   revalidatePath('/');
 
   return {
@@ -142,7 +118,7 @@ export async function obterContagemRespostas(): Promise<ContagemRespostas> {
       .select(
         'resposta-da-primeira-pergunta,resposta-da-segunda-pergunta,resposta-da-terceira-pergunta,resposta-da-quarta-pergunta,resposta-da-quinta-pergunta'
       )
-      .setHeader('Cache-Control', 'no-store');
+      .setHeader('no-cache', 'no-store');
 
     if (error) {
       throw error;

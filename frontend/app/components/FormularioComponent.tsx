@@ -4,7 +4,6 @@ import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import {
     enviarRespostasDoFormulario,
-    verificarSeJaRespondeu,
     type EstadoEnvioFormulario,
 } from '../actions'
 
@@ -20,7 +19,7 @@ function BotaoEnviar() {
         <button
             type="submit"
             disabled={pending}
-            className="mt-3 w-full self-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-10 py-3.5 font-bold text-white shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-200 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400 disabled:shadow-none md:w-auto"
+            className="mt-3 w-full self-center rounded-xl bg-gradient-to-r from-blue-500 to-blue-800 px-10 py-3.5 font-bold text-white shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-200 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400 disabled:shadow-none md:w-auto"
         >
             {pending ? 'Enviando...' : 'Enviar Respostas'}
         </button>
@@ -29,14 +28,6 @@ function BotaoEnviar() {
 
 export default function FormularioComponent(){
     const [estado, formAction] = useActionState(enviarRespostasDoFormulario, estadoInicial);
-    const [jaRespondeu, setJaRespondeu] = useState(false);
-
-    useEffect(() => {
-        verificarSeJaRespondeu().then(setJaRespondeu);
-    }, []);
-
-    const envioBloqueado =
-        jaRespondeu || estado.status === 'sucesso' || estado.status === 'ja-enviado';
 
     return (
        <section className="mx-auto my-4 flex w-[calc(100%-2rem)] max-w-4xl flex-col items-center gap-6 rounded-[2rem] border border-blue-100 bg-white/90 p-4 shadow-[0_24px_70px_-45px_rgba(30,64,175,0.7)] backdrop-blur sm:p-7">
@@ -45,14 +36,7 @@ export default function FormularioComponent(){
             <h2 className="mt-1 text-2xl font-black text-blue-950 sm:text-3xl">Formulário</h2>
             <p className="mt-2 text-sm text-slate-500">Escolha a alternativa que mais combina com você.</p>
         </div>
-        {envioBloqueado ? (
-            <div className="w-full max-w-xl rounded-xl border border-green-300 bg-green-50 p-5 text-center text-green-800">
-                <p className="font-semibold">
-                    {estado.mensagem || 'Este dispositivo já enviou uma resposta.'}
-                </p>
-                <p className="mt-1 text-sm">É permitido apenas um envio por participante.</p>
-            </div>
-        ) : (
+    
         <form className="questionnaire flex w-full flex-col gap-4 sm:gap-5" action={formAction}>
             
             {/* Pergunta 1 */}
@@ -238,7 +222,6 @@ export default function FormularioComponent(){
 
             <BotaoEnviar />
         </form>
-        )}
        </section>
     )
 }

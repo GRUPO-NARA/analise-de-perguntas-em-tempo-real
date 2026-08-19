@@ -10,14 +10,14 @@ export default function InformacoesComponent() {
         
         {/* COLUNA DA ESQUERDA: Textos institucionais */}
         <div className="flex-1 space-y-4 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-600">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-700">
             Conheça o grupo
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-blue-950 sm:text-4xl">
+          <h2 className="text-3xl font-black tracking-tight text-[#ffa928] sm:text-4xl">
             NARA
           </h2>
-          <p className="-mt-2 text-sm font-semibold text-blue-600 sm:text-base">
-            Núcleo de Análises e Recursos Analíticos
+          <p className="-mt-2 text-sm font-semibold text-gray-800 sm:text-base">
+            Núcleo de Análise e Recursos Analíticos
           </p>
           
           <p className="pt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
